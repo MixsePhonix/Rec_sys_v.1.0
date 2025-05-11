@@ -1,23 +1,59 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import "./App.css";
+import Header from "./components/Header";
+import Profile from "./components/Profile";
+import BannerInfo from "./components/BannerInfo";
+import MovieGrid from "./components/MovieGrid";
+import CenteredContainer from "./components/CenteredContainer";
+import MovieDetail from "./components/MovieDetail";
+import LoginForm from "./components/LoginForm";
+import RegistrationForm from "./components/RegistrationForm";
+
+// Защищённый маршрут
+const PrivateRoute = ({ element }) => {
+  const token = localStorage.getItem("token");
+  return token ? element : <Navigate to="/login" />;
+};
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Router>
+        <Header />
+        <CenteredContainer>
+          <div className="content">
+            <Routes>
+              {/* Главная страница */}
+              <Route
+                path="/"
+                element={
+                  <>
+                    <BannerInfo />
+                    <MovieGrid />
+                  </>
+                }
+              />
+
+              {/* Страница деталей фильма */}
+              <Route path="/movie/:movieId" element={<MovieDetail />} />
+
+              {/* Защищённая страница профиля */}
+              <Route
+                path="/profile"
+                element={
+                  <PrivateRoute element={<Profile />} />
+                }
+              />
+
+              <Route path="/login" element={<LoginForm />} />
+
+              {/* Страница регистрации */}
+              <Route path="/register" element={<RegistrationForm />} />
+            </Routes>
+          </div>
+        </CenteredContainer>
+      </Router>
     </div>
   );
 }

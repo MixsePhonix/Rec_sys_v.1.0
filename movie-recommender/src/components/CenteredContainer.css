@@ -1,0 +1,20 @@
+.centered-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background-color: #383737; 
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  
+  .content {
+    width: 100%;
+    max-width: 1200px; 
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: rgb(44, 42, 42);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
