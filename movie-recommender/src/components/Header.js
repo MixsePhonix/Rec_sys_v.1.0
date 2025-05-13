@@ -1,27 +1,37 @@
-// Header.js
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "./Header.css";
 import LoginForm from "./LoginForm";
 import RegistrationForm from "./RegistrationForm";
 
 const Header = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return localStorage.getItem("isLoggedIn") === "true";
+  });
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
 
-  // Проверка токена при загрузке
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      setIsLoggedIn(true);
-    }
-  }, []);
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    localStorage.setItem("isLoggedIn", "true");
+    setIsLoginOpen(false);
+    navigate("/");
+  };
 
-  // Функция для выхода
+  const handleRegisterSuccess = () => {
+    setIsLoggedIn(true);
+    localStorage.setItem("isLoggedIn", "true");
+    setIsRegisterOpen(false);
+    navigate("/");
+  };
+
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("isLoggedIn");
     setIsLoggedIn(false);
+    navigate("/");
   };
 
   return (
@@ -30,32 +40,30 @@ const Header = () => {
         <Link to="/" className="logo">🎬</Link>
         <Link to="/" className="app-title">RamdomPlay</Link>
       </div>
-
       <div className="header-right">
         <input type="text" placeholder="Поиск..." className="search-bar" />
         {isLoggedIn ? (
           <>
-            <button onClick={handleLogout} className="auth-button">Выйти</button>
+            <button className="auth-button" onClick={handleLogout}>Выйти</button>
             <Link to="/profile" className="auth-button">Профиль</Link>
           </>
         ) : (
           <>
-            <button onClick={() => setIsLoginOpen(true)} className="auth-button">Авторизация</button>
-            <button onClick={() => setIsRegisterOpen(true)} className="auth-button">Регистрация</button>
+            <button className="auth-button" onClick={() => setIsLoginOpen(true)}>Авторизация</button>
+            <button className="auth-button" onClick={() => setIsRegisterOpen(true)}>Регистрация</button>
           </>
         )}
       </div>
-
       {isLoginOpen && (
         <LoginForm 
           onClose={() => setIsLoginOpen(false)} 
-          onLoginSuccess={() => setIsLoggedIn(true)} 
+          onLoginSuccess={handleLoginSuccess} 
         />
       )}
       {isRegisterOpen && (
         <RegistrationForm 
-          onClose={() => setIsRegisterOpen(false)}
-          onRegisterSuccess={() => setIsLoggedIn(true)} 
+          onClose={() => setIsRegisterOpen(false)} 
+          onRegisterSuccess={handleRegisterSuccess} 
         />
       )}
     </header>

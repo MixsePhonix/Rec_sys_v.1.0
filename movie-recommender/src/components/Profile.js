@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 
 const Profile = () => {
-  const [user, setUser] = useState(null);
-  const [error, setError] = useState("");
   const [occupationMap, setOccupationMap] = useState({
     0: "other",
     1: "academic/educator",
@@ -22,45 +20,47 @@ const Profile = () => {
     13: "retired",
     14: "sales/marketing",
     15: "scientist",
-    16: "self-employed",
-    17: "technician/engineer",
-    18: "tradesman/craftsman",
-    19: "unemployed",
-    20: "writer"
   });
 
-  const navigate = useNavigate(); // ✅ Исправлено: добавлено `useNavigate`
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("access_token");
       if (!token) {
-        navigate("/login"); 
+        navigate("/login");
         return;
       }
 
       try {
         const response = await fetch("http://localhost:8000/profile", {
-          headers: { "Authorization": `Bearer ${token}` }
+          headers: { "Authorization": `Bearer ${token}` },
         });
-        const data = await response.json();
 
-        if (data.detail) {
-          setError(data.detail);
-        } else {
+        if (response.status === 401) {
+          navigate("/login");
+          return;
+        }
+
+        const data = await response.json();
+        if (data.email) {
           setUser(data);
+        } else {
+          setError("Данные пользователя не найдены");
         }
       } catch (err) {
-        setError("Не удалось загрузить профиль");
-        console.error(err);
+        setError("Ошибка загрузки профиля");
+        console.error("Ошибка:", err);
       }
     };
 
     fetchProfile();
-  }, []);
+  }, [navigate]);
 
-  if (!user) return <div>Загрузка...</div>;
   if (error) return <div style={{ color: "red" }}>{error}</div>;
+  if (!user) return <div>Загрузка...</div>;
 
   return (
     <div className="profile-container">

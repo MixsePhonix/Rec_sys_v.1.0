@@ -12,3 +12,10 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+
+class UserResponse(BaseModel):
+    email: str
+    age: int
+    gender: str
+    zip_code: str
+    occupation: int

@@ -1,6 +1,6 @@
-// RegistrationForm.js
 import React, { useState } from "react";
 import "./AuthForm.css";
+import { useNavigate } from "react-router-dom";
 
 const RegistrationForm = ({ onClose, onRegisterSuccess }) => {
   const [email, setEmail] = useState("");
@@ -9,7 +9,9 @@ const RegistrationForm = ({ onClose, onRegisterSuccess }) => {
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [zip_code, setZipCode] = useState("");
+  const [occupation, setOccupation] = useState(0);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,22 +19,18 @@ const RegistrationForm = ({ onClose, onRegisterSuccess }) => {
       setError("Пароли не совпадают");
       return;
     }
-
     try {
       const response = await fetch("http://localhost:8000/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, age, gender, zip_code }),
+        body: JSON.stringify({ email, password, age, gender, zip_code, occupation }),
       });
-
       const data = await response.json();
-
-      if (data.detail) {
-        setError(data.detail);
-      } else if (data.access_token) {
-        localStorage.setItem("token", data.access_token);
-        onRegisterSuccess(); // ✅ Добавлено: вызов onRegisterSuccess
+      if (data.access_token) {
+        localStorage.setItem("access_token", data.access_token);
+        onRegisterSuccess();
         onClose();
+        navigate("/");
       } else {
         setError("Ошибка регистрации");
       }
@@ -45,7 +43,7 @@ const RegistrationForm = ({ onClose, onRegisterSuccess }) => {
   return (
     <div className="modal">
       <div className="modal-content">
-        <h2 className="form-title">Регистрация</h2>
+        <h2>Регистрация</h2>
         {error && <p style={{ color: "red" }}>{error}</p>}
         <form onSubmit={handleSubmit}>
           <input
@@ -91,6 +89,28 @@ const RegistrationForm = ({ onClose, onRegisterSuccess }) => {
             onChange={(e) => setZipCode(e.target.value)}
             className="form-input"
           />
+          <select
+            value={occupation}
+            onChange={(e) => setOccupation(parseInt(e.target.value))}
+            className="form-input"
+          >
+            <option value="0">other</option>
+            <option value="1">academic/educator</option>
+            <option value="2">artist</option>
+            <option value="3">clerical/admin</option>
+            <option value="4">college/grad student</option>
+            <option value="5">customer service</option>
+            <option value="6">doctor/health care</option>
+            <option value="7">executive/managerial</option>
+            <option value="8">farmer</option>
+            <option value="9">homemaker</option>
+            <option value="10">K-12 student</option>
+            <option value="11">lawyer</option>
+            <option value="12">programmer</option>
+            <option value="13">retired</option>
+            <option value="14">sales/marketing</option>
+            <option value="15">scientist</option>
+          </select>
           <button type="submit" className="form-button">Зарегистрироваться</button>
           <button type="button" onClick={onClose} className="form-button">Закрыть</button>
         </form>

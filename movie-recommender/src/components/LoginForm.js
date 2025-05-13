@@ -1,25 +1,11 @@
 // LoginForm.js
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import "./AuthForm.css";
 
 const LoginForm = ({ onClose, onLoginSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(true);
   const [error, setError] = useState("");
-
-  // Закрытие модального окна при клике на фон
-  useEffect(() => {
-    const handleOutsideClick = (e) => {
-      if (e.target.classList.contains("modal") && isModalOpen) {
-        onClose();
-        setIsModalOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [onClose, isModalOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,11 +20,9 @@ const LoginForm = ({ onClose, onLoginSuccess }) => {
 
       const data = await response.json();
 
-      if (data.detail) {
-        setError(data.detail);
-      } else if (data.access_token) {
-        localStorage.setItem("token", data.access_token);
-        onLoginSuccess(); // ✅ Добавлено: вызов onLoginSuccess
+      if (data.access_token) {
+        localStorage.setItem("access_token", data.access_token);
+        onLoginSuccess(); // ✅ Вызов из Header, не используем setIsLoggedIn напрямую
         onClose();
       } else {
         setError("Ошибка авторизации");
@@ -50,9 +34,9 @@ const LoginForm = ({ onClose, onLoginSuccess }) => {
   };
 
   return (
-    <div className={`modal ${isModalOpen ? "active" : ""}`}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h2 className="form-title">Авторизация</h2>
+    <div className="modal">
+      <div className="modal-content">
+        <h2>Авторизация</h2>
         {error && <p style={{ color: "red" }}>{error}</p>}
         <form onSubmit={handleSubmit}>
           <input
