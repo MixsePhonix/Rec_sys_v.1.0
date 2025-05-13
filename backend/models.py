@@ -25,3 +25,17 @@ class Token(Base):
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     user = relationship("User", back_populates="tokens")
+
+class Movie(Base):
+    __tablename__ = "movies"
+    movie_id = Column(Integer, primary_key=True)
+    title = Column(String(255), nullable=False)
+    genres = Column(String(255))
+
+class Rating(Base):
+    __tablename__ = "ratings"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"))
+    movie_id = Column(Integer, ForeignKey("movies.movie_id"))
+    rating = Column(Integer)
+    timestamp = Column(DateTime)

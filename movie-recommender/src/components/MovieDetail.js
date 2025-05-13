@@ -1,49 +1,98 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import "./MovieDetail.css";
 
 const MovieDetail = () => {
-  // Статические данные о фильме
-  const movie = {
-    title: "Титаник",
-    poster: "https://avatars.mds.yandex.net/get-kinopoisk-image/1773646/9ef93477-736c-4b5f-9cc8-3a602316efbd/3840x", // Замените на реальный URL постера
-    releaseYear: 1997,
-    genre: "Драма, Романтика",
-    description: "Фильм рассказывает историю любви между Джеком и Розой, которые встречаются на корабле Титаник. Это один из самых известных фильмов всех времён.",
-    rating: 4.8
+  const { movieId } = useParams();
+  const [movie, setMovie] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [userRating, setUserRating] = useState(null); // ✅ Состояние для оценки пользователя
+
+useEffect(() => {
+  fetch(`http://localhost:8000/api/movies/${movieId}`)
+    .then(response => {
+      if (!response.ok) throw new Error("Фильм не найден");
+      return response.json();
+    })
+    .then(data => {
+      // ✅ Обработка жанров: убираем { и } и разделяем по | или , (в зависимости от формата)
+      let genresArray = [];
+      if (typeof data.genres === "string") {
+        genresArray = data.genres.replace(/[{}]/g, "").split("|"); // Убираем {} и делим по |
+      } else if (Array.isArray(data.genres)) {
+        genresArray = data.genres;
+      }
+
+      setMovie({
+        ...data,
+        genres: genresArray
+      });
+      setLoading(false);
+    })
+    .catch(err => {
+      setError("Не удалось загрузить данные фильма");
+      setLoading(false);
+    });
+}, [movieId]);
+
+  // ✅ Функция для оценки фильма
+  const rateMovie = async (stars) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("/api/user_actions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          user_id: 1, // Замените на реальный user_id из профиля
+          movie_id: movie.id,
+          action_type: "rating",
+          rating: stars
+        })
+      });
+      if (response.ok) {
+        setUserRating(stars);
+        alert(`Вы оценили фильм на ${stars} звёзд`);
+      }
+    } catch (err) {
+      console.error("Ошибка оценки:", err);
+    }
   };
+
+  if (loading) return <p>Загрузка данных фильма...</p>;
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  if (!movie) return <p>Фильм не найден</p>;
 
   return (
     <div className="movie-detail">
       <div className="movie-poster">
-        {movie.poster ? (
-          <img src={movie.poster} alt={movie.title} />
-        ) : (
-          <div className="placeholder">Постер отсутствует</div>
-        )}
+        <img 
+          src={movie.poster || "https://via.placeholder.com/300x450?text= Постер+отсутствует"} 
+          alt={movie.title} 
+        />
       </div>
-
       <div className="movie-info">
-        <h1 className="movie-title">{movie.title}</h1>
-        <div className="movie-meta">
-          <p className="release-year">Год выпуска: {movie.releaseYear}</p>
-          <p className="genre">Жанр: {movie.genre}</p>
-        </div>
-        <p className="description">{movie.description}</p>
-        
+        <h2>{movie.title}</h2>
+        <p><strong>Год выпуска:</strong> {movie.release_year || "Неизвестно"}</p>
+        <p><strong>Жанры:</strong> {movie.genres?.join(", ") || "Неизвестны"}</p>
+        <p><strong>Рейтинг:</strong> {movie.rating ? movie.rating.toFixed(1) : "Нет оценок"}</p>
+        <button className="watch-button">Просмотрено</button>
         <div className="rating-section">
-          <p className="rating-label">Рейтинг фильма: {movie.rating}</p>
+          <p>Оцените фильм:</p>
           <div className="stars">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <span key={star} className="star">★</span>
+            {[1, 2, 3, 4, 5].map(star => (
+              <span 
+                key={star} 
+                className="star" 
+                onClick={() => rateMovie(star)} // ✅ Теперь rateMovie определён
+                style={{ cursor: "pointer", color: star <= (userRating || 0) ? "gold" : "white" }}
+              >
+                ★
+              </span>
             ))}
-          </div>
-        </div>
-
-        <div className="actions">
-          <button className="watch-button">Просмотрено</button>
-          <div className="rating-input">
-            <label>Оцените фильм:</label>
-            <input type="number" min="1" max="5" placeholder="1-5" />
           </div>
         </div>
       </div>
