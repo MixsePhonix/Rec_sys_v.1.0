@@ -32,6 +32,13 @@ class Movie(Base):
     title = Column(String(255), nullable=False)
     genres = Column(String(255))
 
+class WatchHistory(Base):
+    __tablename__ = "watch_history"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"))
+    movie_id = Column(Integer, ForeignKey("movies.movie_id"))
+    watched_at = Column(DateTime)
+
 class Rating(Base):
     __tablename__ = "ratings"
     id = Column(Integer, primary_key=True)

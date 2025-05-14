@@ -1,6 +1,7 @@
 # schemas.py
 from pydantic import BaseModel
 
+
 class UserCreate(BaseModel):
     email: str
     password: str
@@ -19,3 +20,10 @@ class UserResponse(BaseModel):
     gender: str
     zip_code: str
     occupation: int
+
+class WatchHistoryCreate(BaseModel):
+    movie_id: int
+
+class RatingCreate(BaseModel):
+    movie_id: int
+    rating: int  

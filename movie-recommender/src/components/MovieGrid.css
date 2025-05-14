@@ -52,3 +52,9 @@
   text-decoration: none;
   margin: 0;
 }
+
+/* Для неавторизованных пользователей */
+.star[disabled], .watch-button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
