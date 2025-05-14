@@ -4,13 +4,59 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Movie
 from sqlalchemy import text
+from fastapi_cache.decorator import cache
 
 router = APIRouter(prefix="/api")
+
+@router.get("/search/movies")
+@cache(expire=3600) 
+async def search_movies(query: str = "", db: Session = Depends(get_db)):
+    if not query.strip():
+        return []
+    
+    try:
+        # Поиск по частичному совпадению (в том числе по первым буквам)
+        sql_query = text("""
+            SELECT movie_id, title, release_year, genres
+            FROM movies
+            WHERE title ILIKE :search_query
+            ORDER BY title
+            LIMIT 10
+        """)
+        results = db.execute(sql_query, {"search_query": f"%{query}%"})
+        
+        return [
+            {
+                "id": row[0],
+                "title": row[1],
+                "release_year": row[2],
+                "genres": row[3].split("|") if row[3] else []
+            } for row in results
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка поиска: {str(e)}")
+
+@router.get("/popular-movies", include_in_schema=False)
+@cache(expire=3600)  # Кэширование на 1 час
+async def get_popular_movies(db: Session = Depends(get_db)):
+    try:
+        query = text("""
+            SELECT m.movie_id, m.title, AVG(r.rating) AS avg_rating
+            FROM movies m
+            JOIN ratings r ON m.movie_id = r.movie_id
+            GROUP BY m.movie_id, m.title
+            ORDER BY avg_rating DESC
+            LIMIT 10;
+        """)
+        result = db.execute(query).fetchall()
+        return [{"id": row[0], "title": row[1], "rating": round(row[2], 1)} for row in result]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка загрузки фильмов: {str(e)}")
 
 @router.get("/movies/{movie_id}")
 async def get_movie_details(movie_id: int, db: Session = Depends(get_db)):
     try:
-        # SQL-запрос без проверки токена
+
         query = text("""
             SELECT m.movie_id, m.title, m.release_year, m.genres,
                    AVG(r.rating) AS avg_rating
@@ -33,3 +79,4 @@ async def get_movie_details(movie_id: int, db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка загрузки: {str(e)}")
+    
