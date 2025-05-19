@@ -5,6 +5,9 @@ from database import get_db
 from models import Movie
 from sqlalchemy import text
 from fastapi_cache.decorator import cache
+from recommender.hybrid_filter import get_user_recommendations
+# routers/movies.py
+from dependencies import get_current_user
 
 router = APIRouter(prefix="/api")
 
@@ -15,7 +18,7 @@ async def search_movies(query: str = "", db: Session = Depends(get_db)):
         return []
     
     try:
-        # Поиск по частичному совпадению (в том числе по первым буквам)
+        # Поиск по частичному совпадению 
         sql_query = text("""
             SELECT movie_id, title, release_year, genres
             FROM movies
@@ -79,4 +82,9 @@ async def get_movie_details(movie_id: int, db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка загрузки: {str(e)}")
-    
+
+
+@router.get("/recommendations")
+async def get_user_recommendations_api(db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+    recommendations = get_user_recommendations(db, user_id)
+    return {"recommendations": recommendations}
