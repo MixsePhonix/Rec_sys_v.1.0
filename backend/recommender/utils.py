@@ -33,7 +33,7 @@ def save_recommendations_to_db(recommendations, user_id):
         for idx, movie_id in enumerate(recommendations):
             recommendation = Recommendation(
                 user_id=user_id,
-                movie_id=int(movie_id),  # ✅ Преобразование в int
+                movie_id=int(movie_id), 
                 similarity_score=1.0 - idx * 0.1,
                 recommendation_type="collaborative"
             )
@@ -42,3 +42,11 @@ def save_recommendations_to_db(recommendations, user_id):
     except Exception as e:
         db.rollback()
         print(f"Ошибка сохранения рекомендаций: {str(e)}")
+
+def get_all_users(db):
+    """
+    Получение всех пользователей из БД
+    """
+    query = text("SELECT DISTINCT user_id FROM ratings")
+    result = db.execute(query).fetchall()
+    return [int(row[0]) for row in result]

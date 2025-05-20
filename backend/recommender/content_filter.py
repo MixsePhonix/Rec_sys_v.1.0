@@ -20,6 +20,10 @@ def generate_content_recommendations(movies):
         content_similarities = cosine_similarity(tfidf_matrix, tfidf_matrix)
         movie_indices = pd.Series(movies.index, index=movies["movie_id"].astype(int), dtype=int).drop_duplicates()
         
+        # Убедимся, что возвращается numpy.ndarray
+        if isinstance(content_similarities, pd.DataFrame):
+            content_similarities = content_similarities.values
+        
         return content_similarities, movie_indices
     except Exception as e:
         print(f"[ERROR] Ошибка контентной фильтрации: {str(e)}")

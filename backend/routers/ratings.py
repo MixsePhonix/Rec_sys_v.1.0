@@ -14,7 +14,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
 @router.post("/ratings")
 async def rate_movie(
-    request: RatingCreate,  # ✅ Принимаем данные из тела запроса
+    request: RatingCreate,  
     db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme)
 ):
