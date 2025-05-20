@@ -1,30 +1,41 @@
 # recommender/collaborative_filter.py
-from sklearn.metrics.pairwise import cosine_similarity
+from implicit.als import AlternatingLeastSquares
+from scipy.sparse import csr_matrix
 import pandas as pd
 import numpy as np
 
 def generate_collaborative_recommendations(ratings, movies):
     """
-    Коллаборативная фильтрация через косинусное сходство между пользователями
+    Коллаборативная фильтрация через ALS (возврат модели и матрицы)
     """
     try:
-        # Убедитесь, что все фильмы из ratings есть в movies
-        valid_ratings = ratings[ratings["movie_id"].isin(movies["movie_id"])]
-        
-        # Фильтрация пользователей с минимум 10 оценками
-        min_ratings = valid_ratings.groupby("user_id").filter(lambda x: len(x) >= 10)
-        
+        # Преобразование типов данных
+        ratings["user_id"] = ratings["user_id"].astype(int)
+        ratings["movie_id"] = ratings["movie_id"].astype(int)
+        movies["movie_id"] = movies["movie_id"].astype(int)
+
+        # Уникальные пользователи и фильмы
+        unique_users = ratings["user_id"].unique()
+        unique_movies = movies["movie_id"].tolist()
+
+        # Сопоставление ID с индексами матрицы
+        user_to_index = {user: idx for idx, user in enumerate(unique_users)}
+        movie_to_index = {movie: idx for idx, movie in enumerate(unique_movies)}
+
         # Создание матрицы пользователь-фильм
-        user_movie_matrix = min_ratings.pivot(index="user_id", columns="movie_id", values="rating").fillna(0)
-        
-        # Косинусное сходство между пользователями
-        user_similarities = cosine_similarity(user_movie_matrix)
-        user_similarities_df = pd.DataFrame(user_similarities, index=user_movie_matrix.index, columns=user_movie_matrix.index)
-        
+        user_indices = ratings["user_id"].map(user_to_index)
+        movie_indices = ratings["movie_id"].map(movie_to_index)
+        user_item = csr_matrix(
+            (ratings["rating"], (user_indices, movie_indices)),
+            shape=(len(unique_users), len(unique_movies))
+        )
+
+        # Обучение ALS
+        model = AlternatingLeastSquares(factors=64, iterations=15, random_state=42)
+        model.fit(user_item * 40)
+
         # Возврат данных
-        all_movies = user_movie_matrix.columns.tolist()
-        user_ids = user_movie_matrix.index.tolist()
-        return user_similarities_df, all_movies, user_ids
+        return model, unique_users, unique_movies, user_item, user_to_index, movie_to_index
     except Exception as e:
         print(f"[ERROR] Ошибка коллаборативной фильтрации: {str(e)}")
-        return np.zeros((len(movies), 10)), movies["movie_id"].tolist(), []
+        return None, [], [], None, {}, {}

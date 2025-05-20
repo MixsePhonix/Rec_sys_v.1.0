@@ -21,6 +21,9 @@ def get_popular_movies(db):
         return [1, 2, 3, 5, 8, 10, 12, 15, 18, 20]
 
 def save_recommendations_to_db(recommendations, user_id):
+    """
+    Сохранение рекомендаций в таблицу `recommendations`
+    """
     db = next(get_db())
     try:
         # Удаление старых рекомендаций
@@ -30,9 +33,9 @@ def save_recommendations_to_db(recommendations, user_id):
         for idx, movie_id in enumerate(recommendations):
             recommendation = Recommendation(
                 user_id=user_id,
-                movie_id=int(movie_id),  # ✅ Используем movie_id вместо recommended_movie_id
-                similarity_score=1.0 - (idx * 0.1),
-                recommendation_type="hybrid"
+                movie_id=int(movie_id),  # ✅ Преобразование в int
+                similarity_score=1.0 - idx * 0.1,
+                recommendation_type="collaborative"
             )
             db.add(recommendation)
         db.commit()
