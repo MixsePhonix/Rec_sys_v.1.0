@@ -36,15 +36,6 @@ class UserResponse(BaseModel):
     zip_code: str
     occupation: int
 
-# routers/auth.py
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from dependencies import get_db, create_access_token
-from models import User
-from schemas import UserCreate, UserLogin
-import bcrypt
-
-router = APIRouter()
 
 @router.post("/register")
 async def register_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -80,33 +71,39 @@ async def login_user(user: UserLogin, db: Session = Depends(get_db)):
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/profile")
-async def get_user_profile(current_user: int = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_user_profile(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Получение профиля пользователя с оценками и историей просмотров
     """
     try:
+        # ✅ Извлекаем user_id из словаря
+        user_id = current_user["user_id"] if isinstance(current_user, dict) else current_user
+
         # Базовая информация о пользователе
-        user = db.query(User).filter(User.user_id == current_user).first()
+        user = db.query(User).filter(User.user_id == user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="Пользователь не найден")
         
+        # ✅ Безопасный SQL-запрос с параметрами
         # Оцененные фильмы
-        rated_movies = db.execute(text(f"""
+        rated_query = text("""
             SELECT r.movie_id, m.title, r.rating, r.timestamp 
             FROM ratings r
             JOIN movies m ON r.movie_id = m.movie_id
-            WHERE r.user_id = {current_user}
+            WHERE r.user_id = :user_id
             ORDER BY r.timestamp DESC
-        """)).fetchall()
+        """)
+        rated_movies = db.execute(rated_query, {"user_id": user_id}).fetchall()
         
         # Просмотренные фильмы
-        watched_movies = db.execute(text(f"""
+        watched_query = text("""
             SELECT w.movie_id, m.title, w.watched_at 
             FROM watch_history w
             JOIN movies m ON w.movie_id = m.movie_id
-            WHERE w.user_id = {current_user}
+            WHERE w.user_id = :user_id
             ORDER BY w.watched_at DESC
-        """)).fetchall()
+        """)
+        watched_movies = db.execute(watched_query, {"user_id": user_id}).fetchall()
         
         return {
             "user": {
@@ -114,7 +111,10 @@ async def get_user_profile(current_user: int = Depends(get_current_user), db: Se
                 "email": user.email,
                 "age": user.age,
                 "gender": user.gender,
-                "registration_date": user.registration_date
+                "zip_code": user.zip_code,
+                "occupation": user.occupation,
+                "registration_date": user.registration_date,
+                "is_admin": user.is_admin
             },
             "rated_movies": [
                 {"movie_id": r[0], "title": r[1], "rating": r[2], "timestamp": r[3]}
@@ -126,5 +126,6 @@ async def get_user_profile(current_user: int = Depends(get_current_user), db: Se
             ]
         }
     except Exception as e:
+        db.rollback()
         print(f"[ERROR] Ошибка загрузки профиля: {str(e)}")
         raise HTTPException(status_code=500, detail="Не удалось загрузить профиль")

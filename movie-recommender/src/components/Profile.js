@@ -1,9 +1,9 @@
 // frontend/src/components/Profile.js
 import React, { useEffect, useState } from "react";
 import "./Profile.css";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import { logClick } from "../utils/clickLogger";  // ✅ Импорт добавлен
+import { logClick } from "../utils/clickLogger";
 
 const occupationMap = {
     0: "other", 1: "academic/educator", 2: "artist", 3: "clerical/admin",
@@ -14,6 +14,7 @@ const occupationMap = {
 };
 
 const Profile = () => {
+    const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [rated, setRated] = useState([]);
     const [watched, setWatched] = useState([]);
@@ -28,12 +29,11 @@ const Profile = () => {
     useEffect(() => {
         // ✅ Логируем посещение профиля
         logClick("profile_view", {});
-        
+
         const fetchProfile = async () => {
             const token = localStorage.getItem("access_token");
             if (!token) {
-                setError("Пользователь не авторизован");
-                setLoading(false);
+                navigate("/login");
                 return;
             }
 
@@ -43,11 +43,21 @@ const Profile = () => {
                 });
 
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        navigate("/login");
+                        return;
+                    }
                     throw new Error("Ошибка загрузки профиля");
                 }
 
                 const data = await response.json();
                 setUser(data.user);
+                
+                // ✅ Если админ — редиректим на админку
+                if (data.user.is_admin) {
+                    navigate("/admin");
+                }
+
                 setRated(data.rated_movies);
                 setWatched(data.watched_movies);
                 setLoading(false);
@@ -58,7 +68,7 @@ const Profile = () => {
         };
 
         fetchProfile();
-    }, []);
+    }, [navigate]);
 
     if (loading) return <p>Загрузка профиля...</p>;
     if (error) return <p style={{ color: "red" }}>{error}</p>;
@@ -103,9 +113,19 @@ const Profile = () => {
                         </tbody>
                     </table>
                     <div className="pagination">
-                        <button onClick={() => setRatedPage(Math.max(1, ratedPage - 1))} disabled={ratedPage === 1}>← Предыдущая</button>
+                        <button 
+                            onClick={() => setRatedPage(Math.max(1, ratedPage - 1))} 
+                            disabled={ratedPage === 1}
+                        >
+                            ← Предыдущая
+                        </button>
                         <span>Страница {ratedPage} из {ratedPages}</span>
-                        <button onClick={() => setRatedPage(Math.min(ratedPages, ratedPage + 1))} disabled={ratedPage === ratedPages}>Следующая →</button>
+                        <button 
+                            onClick={() => setRatedPage(Math.min(ratedPages, ratedPage + 1))} 
+                            disabled={ratedPage === ratedPages}
+                        >
+                            Следующая →
+                        </button>
                     </div>
                 </>
             ) : (
@@ -132,9 +152,19 @@ const Profile = () => {
                         </tbody>
                     </table>
                     <div className="pagination">
-                        <button onClick={() => setWatchedPage(Math.max(1, watchedPage - 1))} disabled={watchedPage === 1}>← Предыдущая</button>
+                        <button 
+                            onClick={() => setWatchedPage(Math.max(1, watchedPage - 1))} 
+                            disabled={watchedPage === 1}
+                        >
+                            ← Предыдущая
+                        </button>
                         <span>Страница {watchedPage} из {watchedPages}</span>
-                        <button onClick={() => setWatchedPage(Math.min(watchedPages, watchedPage + 1))} disabled={watchedPage === watchedPages}>Следующая →</button>
+                        <button 
+                            onClick={() => setWatchedPage(Math.min(watchedPages, watchedPage + 1))} 
+                            disabled={watchedPage === watchedPages}
+                        >
+                            Следующая →
+                        </button>
                     </div>
                 </>
             ) : (

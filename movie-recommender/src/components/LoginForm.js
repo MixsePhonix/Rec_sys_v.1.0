@@ -2,11 +2,13 @@
 import React, { useState } from "react";
 import "./AuthForm.css";
 import { logClick } from "../utils/clickLogger";
+import { useNavigate } from "react-router-dom";
 
 const LoginForm = ({ onClose, onLoginSuccess }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -28,6 +30,21 @@ const LoginForm = ({ onClose, onLoginSuccess }) => {
 
                 // ✅ Логируем успешный вход
                 logClick("login", {});
+
+                // ✅ Получаем профиль пользователя
+                const profileResponse = await fetch("http://localhost:8000/api/user/profile", {
+                    headers: { "Authorization": `Bearer ${data.access_token}` }
+                });
+
+                const profileData = await profileResponse.json();
+                const user = profileData.user;
+
+                // ✅ Проверяем, является ли пользователь админом
+                if (user.is_admin) {
+                    navigate("/admin");
+                } else {
+                    navigate("/");
+                }
             } else {
                 setError("Ошибка авторизации");
             }

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers.auth import router as auth_router
 from routers.movies import router as movies_router
 from routers.ratings import router as ratings_router
+from routers.admin import router as admin_router
 from routers.watch_history import router as watch_history_router
 from routers.user_recommendations import router as user_recommendations_router
 from routers.click import router as click_router
@@ -40,3 +41,4 @@ app.include_router(ratings_router)
 app.include_router(watch_history_router)
 app.include_router(user_recommendations_router)
 app.include_router(click_router)
+app.include_router(admin_router)

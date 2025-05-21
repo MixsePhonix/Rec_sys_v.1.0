@@ -63,3 +63,14 @@ class Recommendation(Base):
     user = relationship("User", back_populates="recommendations")
     movie = relationship("Movie", foreign_keys=[movie_id]) 
 
+class UserAction(Base):
+    __tablename__ = "user_actions"
+
+    action_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=True)
+    movie_id = Column(Integer, ForeignKey("movies.movie_id"), nullable=True)
+    action_type = Column(String(50))
+    timestamp = Column(DateTime)
+    ip_address = Column(String(45))
+    user_agent = Column(String(255))
+    search_query = Column(String(255))
