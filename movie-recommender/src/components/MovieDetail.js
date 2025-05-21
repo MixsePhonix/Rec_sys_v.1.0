@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import "./MovieDetail.css";
 import { jwtDecode } from "jwt-decode";
+import { logClick } from "../utils/clickLogger";
 
 const MovieDetail = () => {
     const { movieId } = useParams();
@@ -35,6 +36,11 @@ const MovieDetail = () => {
 
                 const data = await response.json();
                 setMovie(data);
+
+                 logClick("movie_view", {
+                    movie_id: movieId
+                });
+
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -64,12 +70,19 @@ const MovieDetail = () => {
             });
 
             if (!response.ok) throw new Error("Ошибка сохранения рейтинга");
-            setMovie(prev => ({ ...prev, user_rating: stars }));
+
+            logClick("rating_click", {
+                movie_id: movie.id,
+                rating: stars
+              });
+
+             setMovie(prev => ({ ...prev, user_rating: stars }));
         } catch (e) {
             console.error("Ошибка оценки:", e);
+            setNotification("Не удалось сохранить рейтинг");
+            setTimeout(() => setNotification(null), 3000);
         }
     };
-
     // Функция отметки "Просмотрено" (только для авторизованных)
     const handleWatched = async () => {
         if (!token) {
@@ -89,9 +102,16 @@ const MovieDetail = () => {
             });
 
             if (!response.ok) throw new Error("Ошибка отметки просмотра");
+
+                logClick("watched_click", {
+                movie_id: movie.id
+            });
+
             setMovie(prev => ({ ...prev, is_watched: true }));
         } catch (e) {
             console.error("Ошибка отметки просмотра:", e);
+            setNotification("Не удалось отметить как просмотренный");
+            setTimeout(() => setNotification(null), 3000);
         }
     };
 

@@ -1,5 +1,5 @@
 # routers/movies.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Movie
@@ -57,14 +57,13 @@ async def get_popular_movies(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Ошибка загрузки фильмов: {str(e)}")
 
 @router.get("/movies/{movie_id}")
-async def get_movie_details(movie_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_optional)):
-    """
-    Получение информации о фильме:
-    - Все пользователи: id, title, release_year, genres, avg_rating
-    - Авторизованные: user_rating, is_watched
-    """
+async def get_movie_details(
+    movie_id: int, 
+    db: Session = Depends(get_db), 
+    user_id: int = Depends(get_current_user_optional),
+    request_obj: Request = None
+):
     try:
-        # Базовая информация о фильме
         base_query = text("""
             SELECT m.movie_id, m.title, m.release_year, m.genres, AVG(r.rating) AS avg_rating
             FROM movies m
@@ -76,8 +75,20 @@ async def get_movie_details(movie_id: int, db: Session = Depends(get_db), user_i
         
         if not result:
             raise HTTPException(status_code=404, detail="Фильм не найден")
-        
-        # Если пользователь не авторизован — возвращаем только базовые данные
+
+        # ✅ Ручное логирование действия "view"
+        db.execute(text("""
+            INSERT INTO user_actions (user_id, movie_id, action_type, ip_address, user_agent)
+            VALUES (:user_id, :movie_id, 'view', :ip_address, :user_agent)
+        """), {
+            "user_id": user_id,
+            "movie_id": movie_id,
+            "ip_address": request_obj.client.host,
+            "user_agent": request_obj.headers.get("User-Agent")
+        })
+        db.commit()
+
+        # Для авторизованных пользователей
         if not user_id:
             return {
                 "id": result[0],
@@ -86,22 +97,20 @@ async def get_movie_details(movie_id: int, db: Session = Depends(get_db), user_i
                 "genres": result[3].split("|") if result[3] else [],
                 "avg_rating": round(result[4], 1) if result[4] else None
             }
-        
-        # Для авторизованных пользователей добавляем рейтинг и статус "Просмотрено"
-        user_rating_query = text("""
+
+        # Для авторизованных — получаем рейтинг и статус "Просмотрено"
+        user_rating_result = db.execute(text("""
             SELECT rating FROM ratings 
             WHERE user_id = :user_id AND movie_id = :movie_id
-        """)
-        user_rating_result = db.execute(user_rating_query, {"user_id": user_id, "movie_id": movie_id}).fetchone()
+        """), {"user_id": user_id, "movie_id": movie_id}).fetchone()
         user_rating = user_rating_result.rating if user_rating_result else None
         
-        watched_query = text("""
+        watched_result = db.execute(text("""
             SELECT 1 FROM watch_history 
             WHERE user_id = :user_id AND movie_id = :movie_id
-        """)
-        watched_result = db.execute(watched_query, {"user_id": user_id, "movie_id": movie_id}).fetchone()
+        """), {"user_id": user_id, "movie_id": movie_id}).fetchone()
         is_watched = bool(watched_result)
-        
+
         return {
             "id": result[0],
             "title": result[1],
@@ -112,9 +121,9 @@ async def get_movie_details(movie_id: int, db: Session = Depends(get_db), user_i
             "is_watched": is_watched
         }
     except Exception as e:
+        db.rollback()
         print(f"[ERROR] Ошибка загрузки фильма: {str(e)}")
         raise HTTPException(status_code=500, detail="Не удалось загрузить данные фильма")
-
 
 @router.get("/recommendations")
 async def get_user_recommendations_api(db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):

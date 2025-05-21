@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -12,6 +12,7 @@ class User(Base):
     salt = Column(String(255), nullable=False)
     age = Column(Integer)
     gender = Column(String(10))
+    is_admin = Column(Boolean, default=False)
     zip_code = Column(String(50))
     occupation = Column(Integer)
     registration_date = Column(DateTime, default=datetime.utcnow)

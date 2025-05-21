@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import "./Profile.css";
 import { Link } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import { logClick } from "../utils/clickLogger";  // ✅ Импорт добавлен
 
 const occupationMap = {
     0: "other", 1: "academic/educator", 2: "artist", 3: "clerical/admin",
@@ -18,12 +20,15 @@ const Profile = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    // Пагинация для оценок и просмотров
+    // Пагинация
     const [ratedPage, setRatedPage] = useState(1);
     const [watchedPage, setWatchedPage] = useState(1);
     const itemsPerPage = 10;
 
     useEffect(() => {
+        // ✅ Логируем посещение профиля
+        logClick("profile_view", {});
+        
         const fetchProfile = async () => {
             const token = localStorage.getItem("access_token");
             if (!token) {
@@ -59,19 +64,11 @@ const Profile = () => {
     if (error) return <p style={{ color: "red" }}>{error}</p>;
     if (!user) return <p>Пользователь не найден</p>;
 
-    // Разделение на страницы
     const ratedPages = Math.ceil(rated.length / itemsPerPage);
     const watchedPages = Math.ceil(watched.length / itemsPerPage);
 
-    const currentRated = rated.slice(
-        (ratedPage - 1) * itemsPerPage,
-        ratedPage * itemsPerPage
-    );
-
-    const currentWatched = watched.slice(
-        (watchedPage - 1) * itemsPerPage,
-        watchedPage * itemsPerPage
-    );
+    const currentRated = rated.slice((ratedPage - 1) * itemsPerPage, ratedPage * itemsPerPage);
+    const currentWatched = watched.slice((watchedPage - 1) * itemsPerPage, watchedPage * itemsPerPage);
 
     return (
         <div className="profile-container">
@@ -106,19 +103,9 @@ const Profile = () => {
                         </tbody>
                     </table>
                     <div className="pagination">
-                        <button 
-                            onClick={() => setRatedPage(prev => Math.max(1, prev - 1))} 
-                            disabled={ratedPage === 1}
-                        >
-                            ← Предыдущая
-                        </button>
+                        <button onClick={() => setRatedPage(Math.max(1, ratedPage - 1))} disabled={ratedPage === 1}>← Предыдущая</button>
                         <span>Страница {ratedPage} из {ratedPages}</span>
-                        <button 
-                            onClick={() => setRatedPage(prev => Math.min(ratedPages, prev + 1))} 
-                            disabled={ratedPage === ratedPages}
-                        >
-                            Следующая →
-                        </button>
+                        <button onClick={() => setRatedPage(Math.min(ratedPages, ratedPage + 1))} disabled={ratedPage === ratedPages}>Следующая →</button>
                     </div>
                 </>
             ) : (
@@ -145,19 +132,9 @@ const Profile = () => {
                         </tbody>
                     </table>
                     <div className="pagination">
-                        <button 
-                            onClick={() => setWatchedPage(prev => Math.max(1, prev - 1))} 
-                            disabled={watchedPage === 1}
-                        >
-                            ← Предыдущая
-                        </button>
+                        <button onClick={() => setWatchedPage(Math.max(1, watchedPage - 1))} disabled={watchedPage === 1}>← Предыдущая</button>
                         <span>Страница {watchedPage} из {watchedPages}</span>
-                        <button 
-                            onClick={() => setWatchedPage(prev => Math.min(watchedPages, prev + 1))} 
-                            disabled={watchedPage === watchedPages}
-                        >
-                            Следующая →
-                        </button>
+                        <button onClick={() => setWatchedPage(Math.min(watchedPages, watchedPage + 1))} disabled={watchedPage === watchedPages}>Следующая →</button>
                     </div>
                 </>
             ) : (
