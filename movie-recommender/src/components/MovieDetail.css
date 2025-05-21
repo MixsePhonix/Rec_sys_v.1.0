@@ -7,7 +7,7 @@
 }
 
 .movie-poster {
-  flex: 0 0 30%; 
+  flex: 0 0 30%;
   aspect-ratio: 2 / 3;
   overflow: hidden;
   border-radius: 12px;
@@ -35,7 +35,7 @@
 }
 
 .movie-info {
-  flex: 1; 
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -66,6 +66,7 @@
   color: #ccc;
 }
 
+/* Стили для пользовательского рейтинга */
 .rating-section {
   display: flex;
   flex-direction: column;
@@ -75,21 +76,32 @@
 .rating-label {
   font-size: 1.2rem;
   font-weight: bold;
+  color: #ffd700;
 }
 
 .stars {
   display: flex;
   gap: 5px;
-  color: #ffd700;
   font-size: 1.5rem;
+  color: #ffd700;
+  cursor: pointer;
 }
 
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+.star {
+  transition: color 0.2s ease;
+  &:hover {
+    color: #e0c489;
+  }
 }
 
+.star.selected {
+  color: #ffd700;
+  &:hover {
+    color: #ffd700;
+  }
+}
+
+/* Стили для кнопки "Просмотрено" */
 .watch-button {
   padding: 8px 16px;
   background-color: #523333;
@@ -99,30 +111,41 @@
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  align-self: flex-start;
 }
 
-.watch-button:hover {
+.watch-button:hover:not([disabled]) {
   background-color: #3a2525;
 }
 
-.rating-input {
+.watch-button[disabled] {
+  background-color: #444;
+  color: #888;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Стили для пользовательского рейтинга */
+.user-rating {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #2a2a2a;
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.rating-input label {
-  font-size: 1rem;
-  color: #ddd;
+.user-rating h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #ccc;
 }
 
-.rating-input input {
-  padding: 8px;
-  border: 1px solid #555;
-  border-radius: 6px;
-  background-color: #2a2a2a;
-  color: white;
-  font-size: 1rem;
+.user-rating .stars {
+  display: flex;
+  gap: 5px;
+  font-size: 1.5rem;
 }
 
 /* Адаптивность */
@@ -136,7 +159,7 @@
   }
 }
 
-/* Уведомление*/
+/* Уведомления */
 .notification {
   position: fixed;
   top: 20px;
@@ -151,11 +174,21 @@
 }
 
 @keyframes slideDown {
-  from { top: -50px; opacity: 0; }
-  to { top: 20px; opacity: 1; }
+  from {
+    top: -50px;
+    opacity: 0;
+  }
+  to {
+    top: 20px;
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }

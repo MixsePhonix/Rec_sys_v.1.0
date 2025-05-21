@@ -13,7 +13,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
 
 @router.post("/watch_history")
 async def add_to_watch_history(
-    request: WatchHistoryCreate,  # ✅ Принимаем данные из тела запроса
+    request: WatchHistoryCreate,  
     db: Session = Depends(get_db),
     token: str = Depends(oauth2_scheme)
 ):
@@ -34,3 +34,4 @@ async def add_to_watch_history(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Ошибка добавления в историю: {str(e)}")
+    

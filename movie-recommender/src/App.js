@@ -11,7 +11,7 @@ import MovieDetail from "./components/MovieDetail";
 import LoginForm from "./components/LoginForm";
 import RegistrationForm from "./components/RegistrationForm";
 
-// ✅ Перемещаем refreshToken в App.js
+
 const refreshToken = async (navigate) => {
   const refresh_token = localStorage.getItem("refresh_token");
   if (!refresh_token) return false;

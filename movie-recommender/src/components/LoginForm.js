@@ -12,7 +12,7 @@ const LoginForm = ({ onClose, onLoginSuccess }) => {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:8000/login", {
+      const response = await fetch("http://localhost:8000/api/user/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -22,7 +22,7 @@ const LoginForm = ({ onClose, onLoginSuccess }) => {
 
       if (data.access_token) {
         localStorage.setItem("access_token", data.access_token);
-        onLoginSuccess(); // ✅ Вызов из Header, не используем setIsLoggedIn напрямую
+        onLoginSuccess(); 
         onClose();
       } else {
         setError("Ошибка авторизации");

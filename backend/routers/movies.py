@@ -57,18 +57,29 @@ async def get_popular_movies(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Ошибка загрузки фильмов: {str(e)}")
 
 @router.get("/movies/{movie_id}")
-async def get_movie_details(movie_id: int, db: Session = Depends(get_db)):
+async def get_movie_details(movie_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+    """
+    Получение информации о фильме, включая:
+    - Средний рейтинг
+    - Рейтинг пользователя
+    - Статус "Просмотрено"
+    """
     try:
-
+        # Получение данных фильма и среднего рейтинга
         query = text("""
             SELECT m.movie_id, m.title, m.release_year, m.genres,
-                   AVG(r.rating) AS avg_rating
+                   AVG(r.rating) AS avg_rating,
+                   ur.rating AS user_rating,
+                   wh.watched_at IS NOT NULL AS is_watched
             FROM movies m
             LEFT JOIN ratings r ON m.movie_id = r.movie_id
+            LEFT JOIN ratings ur ON m.movie_id = ur.movie_id AND ur.user_id = :user_id
+            LEFT JOIN watch_history wh ON m.movie_id = wh.movie_id AND wh.user_id = :user_id
             WHERE m.movie_id = :movie_id
-            GROUP BY m.movie_id, m.title, m.release_year, m.genres
+            GROUP BY m.movie_id, m.title, m.release_year, m.genres, ur.rating, wh.watched_at
         """)
-        result = db.execute(query, {"movie_id": movie_id}).fetchone()
+        
+        result = db.execute(query, {"movie_id": movie_id, "user_id": user_id}).fetchone()
         
         if not result:
             raise HTTPException(status_code=404, detail="Фильм не найден")
@@ -78,10 +89,13 @@ async def get_movie_details(movie_id: int, db: Session = Depends(get_db)):
             "title": result[1],
             "release_year": result[2],
             "genres": result[3].split("|") if result[3] else [],
-            "rating": round(result[4], 1) if result[4] else None
+            "avg_rating": round(result[4], 1) if result[4] else None,
+            "user_rating": result[5],
+            "is_watched": result[6]
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка загрузки: {str(e)}")
+        print(f"[ERROR] Ошибка загрузки фильма: {str(e)}")
+        raise HTTPException(status_code=500, detail="Не удалось загрузить данные фильма")
 
 
 @router.get("/recommendations")

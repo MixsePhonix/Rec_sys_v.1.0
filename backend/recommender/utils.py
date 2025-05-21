@@ -4,6 +4,7 @@ from database import get_db
 from models import Recommendation
 from sqlalchemy import text
 from datetime import datetime
+from sqlalchemy.orm import Session
 
 
 def get_popular_movies(db):
@@ -50,3 +51,21 @@ def get_all_users(db):
     query = text("SELECT DISTINCT user_id FROM ratings")
     result = db.execute(query).fetchall()
     return [int(row[0]) for row in result]
+
+
+def get_movies_by_ids(db: Session, movie_ids: list):
+    """
+    Получение данных о фильмах по списку ID
+    """
+    if not movie_ids:
+        return []
+    
+    movie_ids_str = ",".join(map(str, movie_ids))
+    query = text(f"""
+        SELECT * FROM movies 
+        WHERE movie_id IN ({movie_ids_str})
+        ORDER BY ARRAY_POSITION(ARRAY[{movie_ids_str}], movie_id)
+    """)
+    
+    result = db.execute(query).fetchall()
+    return [dict(row) for row in result]

@@ -4,8 +4,10 @@ from schemas import UserCreate, UserLogin, UserResponse
 from pydantic import BaseModel
 from models import User, Token
 from database import get_db
+from sqlalchemy import text
 from dependencies import create_access_token, get_current_user
 import bcrypt
+
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
 import os
@@ -76,16 +78,53 @@ async def login_user(user: UserLogin, db: Session = Depends(get_db)):
 
     access_token = create_access_token(data={"sub": str(db_user.user_id)}, expires_delta=timedelta(minutes=15))
     return {"access_token": access_token, "token_type": "bearer"}
+
 @router.get("/profile")
-async def get_profile(current_user: int = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.user_id == current_user).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
-    
-    return {
-        "email": db_user.email,
-        "age": db_user.age,
-        "gender": db_user.gender,
-        "zip_code": db_user.zip_code,
-        "occupation": db_user.occupation
-    }
+async def get_user_profile(current_user: int = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Получение профиля пользователя с оценками и историей просмотров
+    """
+    try:
+        # Базовая информация о пользователе
+        user = db.query(User).filter(User.user_id == current_user).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Пользователь не найден")
+        
+        # Оцененные фильмы
+        rated_movies = db.execute(text(f"""
+            SELECT r.movie_id, m.title, r.rating, r.timestamp 
+            FROM ratings r
+            JOIN movies m ON r.movie_id = m.movie_id
+            WHERE r.user_id = {current_user}
+            ORDER BY r.timestamp DESC
+        """)).fetchall()
+        
+        # Просмотренные фильмы
+        watched_movies = db.execute(text(f"""
+            SELECT w.movie_id, m.title, w.watched_at 
+            FROM watch_history w
+            JOIN movies m ON w.movie_id = m.movie_id
+            WHERE w.user_id = {current_user}
+            ORDER BY w.watched_at DESC
+        """)).fetchall()
+        
+        return {
+            "user": {
+                "user_id": user.user_id,
+                "email": user.email,
+                "age": user.age,
+                "gender": user.gender,
+                "registration_date": user.registration_date
+            },
+            "rated_movies": [
+                {"movie_id": r[0], "title": r[1], "rating": r[2], "timestamp": r[3]}
+                for r in rated_movies
+            ],
+            "watched_movies": [
+                {"movie_id": w[0], "title": w[1], "watched_at": w[2]}
+                for w in watched_movies
+            ]
+        }
+    except Exception as e:
+        print(f"[ERROR] Ошибка загрузки профиля: {str(e)}")
+        raise HTTPException(status_code=500, detail="Не удалось загрузить профиль")

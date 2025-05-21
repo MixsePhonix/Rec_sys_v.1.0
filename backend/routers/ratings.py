@@ -19,27 +19,27 @@ async def rate_movie(
     token: str = Depends(oauth2_scheme)
 ):
     try:
+        # Декодирование токена
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=401, detail="Неверный токен")
 
-        # Проверка диапазона рейтинга
+        # Проверка рейтинга
         if request.rating < 1 or request.rating > 5:
             raise HTTPException(status_code=400, detail="Рейтинг должен быть от 1 до 5")
 
-        # Обновление или добавление рейтинга
-        # routers/ratings.py
+        # Сохранение рейтинга как Unix-время в секундах
         db.execute(text("""
             INSERT INTO ratings (user_id, movie_id, rating, timestamp)
             VALUES (:user_id, :movie_id, :rating, EXTRACT(EPOCH FROM NOW()))
             ON CONFLICT (user_id, movie_id) DO UPDATE SET
                 rating = EXCLUDED.rating,
-                timestamp = EXTRACT(EPOCH FROM NOW())
+                timestamp = EXCLUDED.timestamp
         """), {
             "user_id": user_id,
             "movie_id": request.movie_id,
-            "rating": request.rating 
+            "rating": request.rating
         })
         db.commit()
         return {"status": "success"}

@@ -8,7 +8,7 @@
 
 .movie-card {
   border-radius: 8px;
-  overflow: visible; /* ✅ Убираем обрезание */
+  overflow: visible; 
   width: 100%;
   min-width: 200px;
   display: flex;
@@ -27,12 +27,12 @@
 
 .movie-card img {
   width: 100%;
-  height: auto; /* ✅ Высота автоматическая */
-  max-height: 300px; /* ✅ Ограничиваем высоту (по желанию) */
-  object-fit: contain; /* ✅ Показывает всё изображение */
+  height: auto; 
+  max-height: 300px; 
+  object-fit: contain; 
   border-radius: 4px;
   margin-bottom: 10px;
-  background-color: #1a1a1a; /* Цвет фона при пустом пространстве */
+  background-color: #1a1a1a; 
 }
 
 .movie-card h3 {

@@ -1,15 +1,104 @@
+/* frontend/src/components/Profile.css */
 .profile-container {
-  padding: 20px;
-  background-color: #1d1c1c;
-  color: white;
+    padding: 20px;
+    max-width: 800px;
+    margin: auto;
+    color: white;
+    background-color: #1d1c1c;
 }
 
 .profile-info {
-  background-color: #271818;
-  padding: 20px;
-  border-radius: 8px;
+    background-color: #2a2a2a;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
 }
 
 .profile-info p {
-  margin: 10px 0;
+    margin: 8px 0;
+    font-size: 16px;
+}
+
+.profile-list {
+    list-style: none;
+    padding: 0;
+}
+
+.profile-item {
+    background-color: #2a2a2a;
+    padding: 10px 15px;
+    margin: 5px 0;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.profile-item a {
+    color: #ffd700;
+    text-decoration: none;
+}
+
+.profile-item span {
+    font-size: 14px;
+    color: #ccc;
+}
+
+
+/* frontend/src/components/Profile.css */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.pagination button {
+    background-color: #2a2a2a;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.pagination button:hover:not([disabled]) {
+    background-color: #3a3a3a;
+}
+
+.pagination button:disabled {
+    background-color: #444;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.profile-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    background-color: #1d1c1c;
+}
+
+.profile-table th, .profile-table td {
+    padding: 12px;
+    border-bottom: 1px solid #333;
+    text-align: left;
+}
+
+.profile-table th {
+    background-color: #2a2a2a;
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.profile-table tr:hover {
+    background-color: #2a2a2a;
+}
+
+.profile-table a {
+    color: #ffd700;
+    text-decoration: none;
 }
