@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -61,3 +61,4 @@ class Recommendation(Base):
     
     user = relationship("User", back_populates="recommendations")
     movie = relationship("Movie", foreign_keys=[movie_id]) 
+

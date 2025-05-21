@@ -9,19 +9,22 @@ const MovieDetail = () => {
     const [movie, setMovie] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [notification, setNotification] = useState(null);  
+    const [notification, setNotification] = useState(null);
 
     const token = localStorage.getItem("access_token");
     const decoded = token ? jwtDecode(token) : null;
     const user_id = decoded ? parseInt(decoded.sub) : null;
 
-    // Загрузка данных фильма
+    // Загрузка данных фильма (доступна всем)
     useEffect(() => {
         const fetchMovieDetails = async () => {
             try {
-                const response = await fetch(`http://localhost:8000/api/movies/${movieId}`, {
-                    headers: token ? { "Authorization": `Bearer ${token}` } : {}
-                });
+                const headers = {};
+                if (token) {
+                    headers["Authorization"] = `Bearer ${token}`;
+                }
+
+                const response = await fetch(`http://localhost:8000/api/movies/${movieId}`, { headers });
                 
                 if (!response.ok) {
                     if (response.status === 404) {
@@ -42,10 +45,10 @@ const MovieDetail = () => {
         fetchMovieDetails();
     }, [movieId, token]);
 
-    // Функция оценки фильма
+    // Функция оценки фильма (только для авторизованных)
     const rateMovie = async (stars) => {
         if (!token) {
-            setNotification("Сначала войдите в систему");  
+            setNotification("Сначала войдите в систему");
             setTimeout(() => setNotification(null), 3000);
             return;
         }
@@ -60,29 +63,17 @@ const MovieDetail = () => {
                 body: JSON.stringify({ movie_id: movie.id, rating: stars })
             });
 
-            if (!response.ok) {
-                throw new Error("Ошибка сохранения рейтинга");
-            }
+            if (!response.ok) throw new Error("Ошибка сохранения рейтинга");
+            setMovie(prev => ({ ...prev, user_rating: stars }));
+        } catch (e) {
+            console.error("Ошибка оценки:", e);
+        }
+    };
 
-       const timestamp = Math.floor(Date.now() / 1000);  
-        setMovie(prev => ({
-            ...prev,
-            user_rating: stars,
-            timestamp: timestamp  // Обновляем время во фронтенде
-        }));
-        
-        setNotification(`Вы оценили "${movie.title}" на ★ ${stars}`);
-        setTimeout(() => setNotification(null), 3000);
-    } catch (e) {
-        console.error("Ошибка оценки:", e);
-        setNotification("Не удалось сохранить рейтинг");
-        setTimeout(() => setNotification(null), 3000);
-    }
-};
-    // Функция отметки "Просмотрено"
+    // Функция отметки "Просмотрено" (только для авторизованных)
     const handleWatched = async () => {
         if (!token) {
-            setNotification("Сначала войдите в систему");  
+            setNotification("Сначала войдите в систему");
             setTimeout(() => setNotification(null), 3000);
             return;
         }
@@ -97,17 +88,10 @@ const MovieDetail = () => {
                 body: JSON.stringify({ movie_id: movie.id })
             });
 
-            if (!response.ok) {
-                throw new Error("Ошибка отметки просмотра");
-            }
-
+            if (!response.ok) throw new Error("Ошибка отметки просмотра");
             setMovie(prev => ({ ...prev, is_watched: true }));
-            setNotification(`Фильм "${movie.title}" добавлен в просмотренные`); 
-            setTimeout(() => setNotification(null), 3000);
         } catch (e) {
             console.error("Ошибка отметки просмотра:", e);
-            setNotification("Не удалось отметить как просмотренный"); 
-            setTimeout(() => setNotification(null), 3000);
         }
     };
 
@@ -117,10 +101,8 @@ const MovieDetail = () => {
 
     return (
         <div className="movie-detail">
-            {/* Всплывающее уведомление */}
-            {notification && (
-                <div className="notification">{notification}</div>
-            )}
+            {/* Уведомление */}
+            {notification && <div className="notification">{notification}</div>}
 
             <div className="movie-poster">
                 <img src={movie.poster_url || "https://example.com/default_poster.jpg "} alt={movie.title} />
@@ -132,7 +114,7 @@ const MovieDetail = () => {
                 <p><strong>Жанры:</strong> {movie.genres?.join(", ") || "Неизвестны"}</p>
                 <p><strong>Средний рейтинг:</strong> {movie.avg_rating?.toFixed(1) || "Нет оценок"}</p>
 
-                {/* Отображение личного рейтинга */}
+                {/* Отображение личного рейтинга (только для авторизованных) */}
                 {user_id && (
                     <div className="user-rating">
                         <p><strong>Ваш рейтинг:</strong> ★ {movie.user_rating ? movie.user_rating.toFixed(1) : "Не поставлен"}</p>
@@ -151,7 +133,7 @@ const MovieDetail = () => {
                     </div>
                 )}
 
-                {/* Кнопка "Просмотреть" */}
+                {/* Кнопка "Просмотреть" (только для авторизованных и непросмотренных фильмов) */}
                 {token && !movie.is_watched && (
                     <button 
                         className="watch-button" 

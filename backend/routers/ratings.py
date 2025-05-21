@@ -10,7 +10,7 @@ from fastapi.security import OAuth2PasswordBearer
 import jwt
 
 router = APIRouter(prefix="/api")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/user/login")
 
 @router.post("/ratings")
 async def rate_movie(

@@ -6,7 +6,7 @@ from models import Movie
 from sqlalchemy import text
 from fastapi_cache.decorator import cache
 from recommender.hybrid_filter import get_user_recommendations
-# routers/movies.py
+from dependencies import get_current_user_optional 
 from dependencies import get_current_user
 
 router = APIRouter(prefix="/api")
@@ -57,32 +57,50 @@ async def get_popular_movies(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Ошибка загрузки фильмов: {str(e)}")
 
 @router.get("/movies/{movie_id}")
-async def get_movie_details(movie_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
+async def get_movie_details(movie_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_current_user_optional)):
     """
-    Получение информации о фильме, включая:
-    - Средний рейтинг
-    - Рейтинг пользователя
-    - Статус "Просмотрено"
+    Получение информации о фильме:
+    - Все пользователи: id, title, release_year, genres, avg_rating
+    - Авторизованные: user_rating, is_watched
     """
     try:
-        # Получение данных фильма и среднего рейтинга
-        query = text("""
-            SELECT m.movie_id, m.title, m.release_year, m.genres,
-                   AVG(r.rating) AS avg_rating,
-                   ur.rating AS user_rating,
-                   wh.watched_at IS NOT NULL AS is_watched
+        # Базовая информация о фильме
+        base_query = text("""
+            SELECT m.movie_id, m.title, m.release_year, m.genres, AVG(r.rating) AS avg_rating
             FROM movies m
             LEFT JOIN ratings r ON m.movie_id = r.movie_id
-            LEFT JOIN ratings ur ON m.movie_id = ur.movie_id AND ur.user_id = :user_id
-            LEFT JOIN watch_history wh ON m.movie_id = wh.movie_id AND wh.user_id = :user_id
             WHERE m.movie_id = :movie_id
-            GROUP BY m.movie_id, m.title, m.release_year, m.genres, ur.rating, wh.watched_at
+            GROUP BY m.movie_id, m.title, m.release_year, m.genres
         """)
-        
-        result = db.execute(query, {"movie_id": movie_id, "user_id": user_id}).fetchone()
+        result = db.execute(base_query, {"movie_id": movie_id}).fetchone()
         
         if not result:
             raise HTTPException(status_code=404, detail="Фильм не найден")
+        
+        # Если пользователь не авторизован — возвращаем только базовые данные
+        if not user_id:
+            return {
+                "id": result[0],
+                "title": result[1],
+                "release_year": result[2],
+                "genres": result[3].split("|") if result[3] else [],
+                "avg_rating": round(result[4], 1) if result[4] else None
+            }
+        
+        # Для авторизованных пользователей добавляем рейтинг и статус "Просмотрено"
+        user_rating_query = text("""
+            SELECT rating FROM ratings 
+            WHERE user_id = :user_id AND movie_id = :movie_id
+        """)
+        user_rating_result = db.execute(user_rating_query, {"user_id": user_id, "movie_id": movie_id}).fetchone()
+        user_rating = user_rating_result.rating if user_rating_result else None
+        
+        watched_query = text("""
+            SELECT 1 FROM watch_history 
+            WHERE user_id = :user_id AND movie_id = :movie_id
+        """)
+        watched_result = db.execute(watched_query, {"user_id": user_id, "movie_id": movie_id}).fetchone()
+        is_watched = bool(watched_result)
         
         return {
             "id": result[0],
@@ -90,8 +108,8 @@ async def get_movie_details(movie_id: int, db: Session = Depends(get_db), user_i
             "release_year": result[2],
             "genres": result[3].split("|") if result[3] else [],
             "avg_rating": round(result[4], 1) if result[4] else None,
-            "user_rating": result[5],
-            "is_watched": result[6]
+            "user_rating": user_rating,
+            "is_watched": is_watched
         }
     except Exception as e:
         print(f"[ERROR] Ошибка загрузки фильма: {str(e)}")

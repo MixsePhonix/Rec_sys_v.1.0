@@ -9,7 +9,7 @@ from fastapi.security import OAuth2PasswordBearer
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/user/login", auto_error=False)
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
@@ -30,3 +30,19 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         return user_id
     except jwt.PyJWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный токен")
+    
+def get_current_user_optional(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Возвращает user_id, если токен валиден, иначе None
+    """
+    if not token:
+        return None
+    
+    try:
+        payload = jwt.decode(token, os.getenv("SECRET_KEY"), algorithms=[os.getenv("ALGORITHM")])
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        return int(user_id)
+    except jwt.PyJWTError:
+        return None
