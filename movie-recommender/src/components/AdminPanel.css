@@ -41,7 +41,7 @@
 }
 
 .profile-table tr:hover {
-    background-color: #f1f1f1;
+    background-color: #574e4e;
 }
 
 /* Пагинация */
@@ -68,4 +68,43 @@
 .pagination span {
     font-size: 0.9rem;
     color: #666;
+}
+
+.block-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.block-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.block-button,
+.unblock-button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+    transition: background-color 0.2s;
+}
+
+.block-button {
+    background-color: #dc3545; /* Красный */
+}
+
+.block-button:hover {
+    background-color: #c82333;
+}
+
+.unblock-button {
+    background-color: #28a745; /* Зеленый */
+}
+
+.unblock-button:hover {
+    background-color: #218838;
 }

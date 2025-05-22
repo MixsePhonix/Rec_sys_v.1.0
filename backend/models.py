@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, ARRAY
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -18,6 +18,7 @@ class User(Base):
     registration_date = Column(DateTime, default=datetime.utcnow)
     tokens = relationship("Token", back_populates="user")
     recommendations = relationship("Recommendation", back_populates="user")
+    is_blocked = Column(Boolean, default=False) 
 
 class Token(Base):
     __tablename__ = "tokens"
@@ -30,10 +31,10 @@ class Token(Base):
 
 class Movie(Base):
     __tablename__ = "movies"
-    movie_id = Column(Integer, primary_key=True)
+    movie_id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(255), nullable=False)
-    genres = Column(String(255))
-    rating_avg = Column(Float)
+    genres = Column(String)
+    release_year = Column(Integer)
 
 class WatchHistory(Base):
     __tablename__ = "watch_history"

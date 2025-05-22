@@ -28,19 +28,22 @@ const LoginForm = ({ onClose, onLoginSuccess }) => {
                 onLoginSuccess();
                 onClose();
 
-                // ✅ Логируем успешный вход
-                logClick("login", {});
-
-                // ✅ Получаем профиль пользователя
+                // ✅ Получаем профиль
                 const profileResponse = await fetch("http://localhost:8000/api/user/profile", {
                     headers: { "Authorization": `Bearer ${data.access_token}` }
                 });
 
-                const profileData = await profileResponse.json();
-                const user = profileData.user;
+                // ✅ Проверяем статус
+                if (!profileResponse.ok) {
+                    localStorage.removeItem("access_token");
+                    localStorage.removeItem("isLoggedIn");
+                    const profileData = await profileResponse.json();
+                    setError(profileData.detail || "Доступ запрещён");
+                    return;
+                }
 
-                // ✅ Проверяем, является ли пользователь админом
-                if (user.is_admin) {
+                const profile = await profileResponse.json();
+                if (profile.user.is_admin) {
                     navigate("/admin");
                 } else {
                     navigate("/");
@@ -50,7 +53,7 @@ const LoginForm = ({ onClose, onLoginSuccess }) => {
             }
         } catch (err) {
             setError("Не удалось связаться с сервером");
-            console.error(err);
+            console.error("Ошибка:", err);
         }
     };
 

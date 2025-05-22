@@ -14,13 +14,15 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/user/login")
 
 @router.post("/watch_history")
 async def add_to_watch_history(
-    request: WatchHistoryCreate,  
+    request: WatchHistoryCreate,
     db: Session = Depends(get_db),
-    user_id: int = Depends(get_current_user),
+    user: dict = Depends(get_current_user),  # Получаем словарь
     request_obj: Request = None
 ):
     try:
-        # Отметка фильма как просмотренного
+        user_id = user["user_id"]  # ✅ Извлекаем только user_id из словаря
+
+        # Добавляем в историю просмотров
         db.execute(text("""
             INSERT INTO watch_history (user_id, movie_id, watched_at)
             VALUES (:user_id, :movie_id, NOW())
@@ -30,7 +32,7 @@ async def add_to_watch_history(
             "movie_id": request.movie_id
         })
 
-        # ✅ Ручное логирование действия "watched"
+        # Логируем действие
         db.execute(text("""
             INSERT INTO user_actions (user_id, movie_id, action_type, ip_address, user_agent)
             VALUES (:user_id, :movie_id, 'watched', :ip_address, :user_agent)
@@ -40,7 +42,7 @@ async def add_to_watch_history(
             "ip_address": request_obj.client.host,
             "user_agent": request_obj.headers.get("User-Agent")
         })
-        
+
         db.commit()
         return {"status": "success"}
     except Exception as e:

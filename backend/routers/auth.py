@@ -63,12 +63,35 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login")
 async def login_user(user: UserLogin, db: Session = Depends(get_db)):
+    """
+    Авторизация пользователя
+    """
     db_user = db.query(User).filter(User.email == user.email).first()
-    if not db_user or not bcrypt.checkpw(user.password.encode("utf-8"), db_user.password_hash.encode("utf-8")):
+    
+    if not db_user:
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
-
-    access_token = create_access_token(data={"sub": str(db_user.user_id)}, expires_delta=timedelta(minutes=15))
-    return {"access_token": access_token, "token_type": "bearer"}
+    
+    # Проверка пароля
+    if not bcrypt.checkpw(user.password.encode("utf-8"), db_user.password_hash.encode("utf-8")):
+        raise HTTPException(status_code=401, detail="Неверный email или пароль")
+    
+    # ✅ Проверка блокировки
+    if db_user.is_blocked:
+        raise HTTPException(
+            status_code=403,  # Forbidden
+            detail="Аккаунт заблокирован"
+        )
+    
+    # Генерация токена
+    access_token = create_access_token(
+        data={"sub": str(db_user.user_id)},
+        expires_delta=timedelta(minutes=15)
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 @router.get("/profile")
 async def get_user_profile(current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -76,16 +99,19 @@ async def get_user_profile(current_user: dict = Depends(get_current_user), db: S
     Получение профиля пользователя с оценками и историей просмотров
     """
     try:
-        # ✅ Извлекаем user_id из словаря
-        user_id = current_user["user_id"] if isinstance(current_user, dict) else current_user
+        # ✅ Теперь current_user — это словарь с полями user_id и is_blocked
+        user_id = current_user["user_id"]
+        is_blocked = current_user.get("is_blocked", False)
+
+        if is_blocked:
+            raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
 
         # Базовая информация о пользователе
         user = db.query(User).filter(User.user_id == user_id).first()
         if not user:
             raise HTTPException(status_code=404, detail="Пользователь не найден")
-        
-        # ✅ Безопасный SQL-запрос с параметрами
-        # Оцененные фильмы
+
+        # ✅ Оцененные фильмы
         rated_query = text("""
             SELECT r.movie_id, m.title, r.rating, r.timestamp 
             FROM ratings r
@@ -94,8 +120,8 @@ async def get_user_profile(current_user: dict = Depends(get_current_user), db: S
             ORDER BY r.timestamp DESC
         """)
         rated_movies = db.execute(rated_query, {"user_id": user_id}).fetchall()
-        
-        # Просмотренные фильмы
+
+        # ✅ Просмотренные фильмы
         watched_query = text("""
             SELECT w.movie_id, m.title, w.watched_at 
             FROM watch_history w
@@ -104,7 +130,7 @@ async def get_user_profile(current_user: dict = Depends(get_current_user), db: S
             ORDER BY w.watched_at DESC
         """)
         watched_movies = db.execute(watched_query, {"user_id": user_id}).fetchall()
-        
+
         return {
             "user": {
                 "user_id": user.user_id,
@@ -114,7 +140,8 @@ async def get_user_profile(current_user: dict = Depends(get_current_user), db: S
                 "zip_code": user.zip_code,
                 "occupation": user.occupation,
                 "registration_date": user.registration_date,
-                "is_admin": user.is_admin
+                "is_admin": user.is_admin,
+                "is_blocked": user.is_blocked  # ✅ Это поле должно быть в ответе
             },
             "rated_movies": [
                 {"movie_id": r[0], "title": r[1], "rating": r[2], "timestamp": r[3]}

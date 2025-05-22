@@ -126,6 +126,18 @@ async def get_movie_details(
         raise HTTPException(status_code=500, detail="Не удалось загрузить данные фильма")
 
 @router.get("/recommendations")
-async def get_user_recommendations_api(db: Session = Depends(get_db), user_id: int = Depends(get_current_user)):
-    recommendations = get_user_recommendations(db, user_id)
-    return {"recommendations": recommendations}
+async def get_user_recommendations_api(
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Получение рекомендаций для пользователя
+    """
+    try:
+        # ✅ Извлекаем только user_id из словаря
+        user_id = user["user_id"]
+        recommendations = get_user_recommendations(db, user_id)
+        return {"recommendations": recommendations}
+    except Exception as e:
+        print(f"[ERROR] Ошибка рекомендаций для пользователя {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Не удалось сгенерировать рекомендации")

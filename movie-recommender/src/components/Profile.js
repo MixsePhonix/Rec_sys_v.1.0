@@ -27,9 +27,6 @@ const Profile = () => {
     const itemsPerPage = 10;
 
     useEffect(() => {
-        // ✅ Логируем посещение профиля
-        logClick("profile_view", {});
-
         const fetchProfile = async () => {
             const token = localStorage.getItem("access_token");
             if (!token) {
@@ -45,19 +42,22 @@ const Profile = () => {
                 if (!response.ok) {
                     if (response.status === 401) {
                         navigate("/login");
-                        return;
+                    } else if (response.status === 403) {
+                        setError("Ваш аккаунт заблокирован");
                     }
-                    throw new Error("Ошибка загрузки профиля");
+                    return;
                 }
 
                 const data = await response.json();
                 setUser(data.user);
-                
-                // ✅ Если админ — редиректим на админку
+
+                // ✅ Проверка, является ли пользователь админом
                 if (data.user.is_admin) {
-                    navigate("/admin");
+                    navigate("/admin");  // ✅ Редирект в админку
+                    return;
                 }
 
+                // Если не админ → продолжаем загрузку профиля
                 setRated(data.rated_movies);
                 setWatched(data.watched_movies);
                 setLoading(false);
