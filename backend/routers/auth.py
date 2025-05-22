@@ -7,6 +7,8 @@ from database import get_db
 from sqlalchemy import text
 from dependencies import create_access_token, get_current_user
 import bcrypt
+from recommender.utils import save_recommendations_to_db
+from recommender.demographic_filter import generate_demographic_recommendations
 
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime
@@ -39,13 +41,19 @@ class UserResponse(BaseModel):
 
 @router.post("/register")
 async def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    """
+    Регистрация нового пользователя с немедленной генерацией рекомендаций
+    """
+    # Проверка email
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Пользователь с таким email уже существует")
 
+    # Хэширование пароля
     hashed_password = bcrypt.hashpw(user.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     salt = bcrypt.gensalt().decode("utf-8")
 
+    # Создание пользователя
     db_user = User(
         email=user.email,
         password_hash=hashed_password,
@@ -53,11 +61,23 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
         age=user.age,
         gender=user.gender,
         zip_code=user.zip_code,
+        occupation=user.occupation
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
 
+    # ✅ Генерация рекомендаций на основе демографии
+    try:
+        recommendations = generate_demographic_recommendations(db, db_user.user_id)
+        print(f"[DEBUG] Рекомендации для {db_user.user_id}: {recommendations}")
+        
+        # ✅ Сохранение рекомендаций
+        save_recommendations_to_db(recommendations, db_user.user_id)
+    except Exception as e:
+        print(f"[ERROR] Не удалось сгенерировать рекомендации для {db_user.user_id}: {str(e)}")
+
+    # Генерация токена
     access_token = create_access_token(data={"sub": str(db_user.user_id)}, expires_delta=timedelta(minutes=15))
     return {"access_token": access_token, "token_type": "bearer"}
 

@@ -141,3 +141,28 @@ async def get_user_recommendations_api(
     except Exception as e:
         print(f"[ERROR] Ошибка рекомендаций для пользователя {user_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Не удалось сгенерировать рекомендации")
+    
+@router.get("/movies")
+async def get_all_movies(db: Session = Depends(get_db)):
+    """
+    Получение списка всех фильмов
+    """
+    try:
+        query = text("""
+            SELECT m.movie_id, m.title, m.release_year, m.genres
+            FROM movies m
+            ORDER BY m.title
+        """)
+        result = db.execute(query).fetchall()
+        
+        return [
+            {
+                "id": row[0],
+                "title": row[1],
+                "release_year": row[2],
+                "genres": row[3].replace("{", "").replace("}", "").split(",") if row[3] else []
+            } for row in result
+        ]
+    except Exception as e:
+        print(f"[ERROR] Ошибка загрузки фильмов: {str(e)}")
+        raise HTTPException(status_code=500, detail="Не удалось загрузить фильмы")
